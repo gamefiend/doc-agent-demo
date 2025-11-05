@@ -1525,7 +1525,7 @@ gh workflow run "Documentation Bot - Generate & Create PR" \
 
 | Trigger | When | Purpose |
 |---------|------|---------|
-| `push` to main | After code merge | Auto-update docs when code changes |
+| `pull_request: [closed]` with `merged == true` | After PR merge to main | Auto-update docs when code changes are merged |
 | `workflow_dispatch` | Manual trigger | Generate specific docs on-demand |
 | Scheduled (optional) | Weekly cron | Keep docs fresh even without code changes |
 
@@ -2303,7 +2303,17 @@ jobs:
 - Harder to attribute changes
 - May conflict with human edits
 
-#### Implementation
+---
+
+**⚠️ NOTE: This section describes a FUTURE alternative approach (Phase 3+), not the current MVP.**
+
+**Current MVP (Phase 1)**: Bot creates new PRs with markdown documentation files.
+
+**Future Option (Phase 3+)**: Bot could optionally post inline suggestions as PR review comments.
+
+---
+
+#### Implementation (Future Phase)
 
 ```go
 // Post as GitHub review with suggested changes
@@ -2382,7 +2392,15 @@ review := &github.Review{
 
 ## 16. Feedback Loop Mechanisms
 
-### 16.1 Reaction-Based Feedback
+**⚠️ NOTE: This section describes FUTURE enhancements (Phase 3+), not the current MVP.**
+
+**Current MVP (Phase 1)**: Bot creates documentation PRs; docs team reviews and approves/rejects.
+
+**Future Enhancement (Phase 3+)**: Could add feedback tracking for continuous improvement.
+
+---
+
+### 16.1 Reaction-Based Feedback (Future Phase)
 
 ```go
 // Track reactions on bot comments
@@ -2499,13 +2517,14 @@ Prompt Performance:
 
 ### 17.1 Phase 1 MVP Requirements (Week 1-2)
 
-✓ Bot analyzes changed Go files (git diff)
-✓ Bot extracts exported functions/types from changed files only
-✓ Bot generates godoc suggestions for 5-10 functions per PR
-✓ Suggestions posted as PR review comments (not auto-commits)
-✓ Cost tracking shows < $0.10 per PR
-✓ Workflow completes in < 2 minutes
-✓ Zero false positives in first 10 PRs
+✓ Bot analyzes merged PRs and ALL related Go modules (not just changed files)
+✓ Bot checks if documentation exists and is up-to-date
+✓ Bot generates comprehensive verbose markdown files (API.md, ARCHITECTURE.md, DATA_MODELS.md, README.md)
+✓ Creates new PR with documentation file changes (not inline comments)
+✓ Only creates PR if documentation actually needs updating
+✓ Assigns PR to docs-team for review
+✓ Workflow completes in reasonable time
+✓ Smart detection prevents unnecessary PRs
 
 ### 17.2 Phase 2 Requirements (Week 3)
 
@@ -2621,29 +2640,30 @@ This design document presents a **pragmatic, incremental approach** to building 
 
 **Critical Success Factors:**
 
-1. **Start Small** - MVP focuses on godoc suggestions for changed symbols only
-2. **Prove Value** - Week 1-2 goal: Generate helpful suggestions for 10 PRs
-3. **Control Costs** - Hard limit of $0.10 per PR with comprehensive tracking
-4. **Optimize Performance** - Target < 2 minutes runtime through caching and incremental analysis
-5. **User-Friendly UX** - GitHub's native suggested changes, not auto-commits
-6. **Continuous Improvement** - Feedback loops via 👍/👎 reactions to tune prompts
+1. **Start Small** - MVP focuses on simple Go API with comprehensive markdown documentation
+2. **Prove Value** - Week 1-2 goal: Successfully generate documentation for merged PRs
+3. **Smart Detection** - Only create PR when documentation actually needs updating
+4. **Comprehensive Analysis** - Analyze ALL related modules, not just changed files
+5. **Docs Team Workflow** - Create new PRs for docs team to review, not auto-commits
+6. **Extensible Design** - Architecture supports future expansion to other languages
 
 **What Makes This Design Practical:**
 
-✅ **Incremental rollout** - Each phase adds value without overwhelming complexity
-✅ **Cost-aware** - Rate limiting, caching, and token budgets built-in from day 1
-✅ **Performance-optimized** - Only analyzes changed files, not entire codebase
-✅ **Label-gated features** - Expensive operations (Swagger, Doc Detective) run on-demand only
-✅ **Non-intrusive** - Suggestions, not commits; reviewers stay in control
-✅ **Feedback-driven** - System learns from reactions and improves over time
+✅ **Incremental rollout** - Start with Go API demo, expand to other languages later
+✅ **Official tooling** - Uses Claude Code GitHub Action (not custom implementation)
+✅ **Comprehensive analysis** - Analyzes all related modules for complete documentation
+✅ **Smart detection** - Only creates PR when documentation needs updating
+✅ **Non-intrusive** - New PRs for review, not auto-commits; docs team stays in control
+✅ **Extensible architecture** - Designed to support React, Python, Terraform, and more
 
 **What Changed from Original Design:**
 
-- ❌ ~~Full codebase AST parsing~~ → ✅ Changed files only (git diff)
-- ❌ ~~All features at once~~ → ✅ MVP with godoc only, expand later
-- ❌ ~~Auto-commits to branch~~ → ✅ GitHub suggested changes
-- ❌ ~~Run everything on every PR~~ → ✅ Label-gated, conditional execution
-- ❌ ~~Doc Detective always~~ → ✅ Only with `docs:test` label
+- ❌ ~~Complex custom bot implementation~~ → ✅ Use official Claude Code GitHub Action
+- ❌ ~~Inline PR review comments~~ → ✅ Create new PRs with markdown files
+- ❌ ~~Changed files only~~ → ✅ Analyze ALL related modules for completeness
+- ❌ ~~Minimal documentation~~ → ✅ Verbose, comprehensive markdown files
+- ❌ ~~Always create PR~~ → ✅ Smart detection: only when docs need updating
+- ❌ ~~Multi-language from day 1~~ → ✅ Go-first with extensible architecture
 
 ---
 
