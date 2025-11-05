@@ -1,0 +1,276 @@
+name: Documentation Bot
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to generate docs for'
+        required: true
+        type: number
+
+jobs:
+  update-docs:
+    # Only run if PR was actually merged (not just closed) OR manually triggered
+    if: github.event.pull_request.merged == true || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Get full history for analysis
+
+      - name: Get merged PR information
+        id: pr_info
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Determine if this is from PR event or manual trigger
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            PR_NUMBER="${{ github.event.inputs.pr_number }}"
+            echo "Manual trigger - fetching PR #$PR_NUMBER info via gh CLI"
+
+            # Get PR info using gh CLI
+            PR_DATA=$(gh pr view $PR_NUMBER --json title,author,headRefOid,baseRefOid,mergeCommit)
+            PR_TITLE=$(echo "$PR_DATA" | jq -r '.title')
+            PR_AUTHOR=$(echo "$PR_DATA" | jq -r '.author.login')
+            HEAD_SHA=$(echo "$PR_DATA" | jq -r '.headRefOid')
+            BASE_SHA=$(echo "$PR_DATA" | jq -r '.baseRefOid')
+          else
+            echo "PR merge event - using event data"
+            PR_NUMBER="${{ github.event.pull_request.number }}"
+            PR_TITLE="${{ github.event.pull_request.title }}"
+            PR_AUTHOR="${{ github.event.pull_request.user.login }}"
+            HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          fi
+
+          echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
+          echo "pr_title=$PR_TITLE" >> $GITHUB_OUTPUT
+          echo "pr_author=$PR_AUTHOR" >> $GITHUB_OUTPUT
+          echo "head_sha=$HEAD_SHA" >> $GITHUB_OUTPUT
+          echo "base_sha=$BASE_SHA" >> $GITHUB_OUTPUT
+
+          # Fetch PR head commit (critical - it may not be in local main)
+          git fetch origin $HEAD_SHA
+          git fetch origin $BASE_SHA
+
+          # Get list of changed files
+          git diff --name-only $BASE_SHA $HEAD_SHA > /tmp/changed_files.txt
+          echo "Changed files:"
+          cat /tmp/changed_files.txt
+
+      - name: Run Claude Code to Analyze & Generate Documentation
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          show_full_output: true
+          prompt: |
+            # Documentation Update Task
+
+            A pull request was just merged into main:
+
+            **PR #${{ steps.pr_info.outputs.pr_number }}:** ${{ steps.pr_info.outputs.pr_title }}
+            **Author:** @${{ steps.pr_info.outputs.pr_author }}
+
+            ## Your Task
+
+            1. **Analyze the merged PR changes:**
+               - Read the list of changed files from `/tmp/changed_files.txt`
+               - Read the actual content of ALL changed files
+               - Identify ALL related Go modules (not just changed files - analyze dependencies and related code)
+
+            2. **Check existing documentation:**
+               - Look in the `docs/` folder for existing documentation
+               - Check `README.md` for relevant sections
+               - Determine if documentation exists for these changes
+
+            3. **Make a decision:**
+               - **If documentation is up-to-date:** Create a file `/tmp/no_docs_needed.txt` with message "Documentation is current"
+               - **If documentation is missing:** Generate comprehensive new documentation
+               - **If documentation is outdated:** Update it with improvements
+
+            4. **Generate/Update documentation (if needed):**
+
+               Create **VERBOSE, COMPREHENSIVE** markdown files in the `docs/` folder:
+
+               For **Go API changes:**
+               - `docs/API.md` - Complete API reference with all endpoints
+               - `docs/ARCHITECTURE.md` - System architecture with Mermaid diagrams
+               - `docs/DATA_MODELS.md` - Go structs and data models
+
+               **Always update:**
+               - `README.md` - Keep it fresh with latest info
+
+            5. **Documentation style requirements:**
+               - Be VERBOSE and DETAILED (not minimal)
+               - Include complete code examples (not snippets)
+               - Add tables for structured data (props, fields, params)
+               - Use collapsible sections for long examples
+               - Include mermaid diagrams where appropriate
+               - Add cross-references to related docs
+               - Include "Last updated" timestamp
+               - Show request/response examples for API endpoints
+               - Include error responses
+               - Add code examples in multiple languages (cURL, Go, Python)
+
+            ## Important Notes
+
+            - Analyze ALL related modules, not just changed files
+            - If no changes needed, create `/tmp/no_docs_needed.txt` and stop
+            - Make documentation self-contained and comprehensive
+            - Use examples from the actual codebase
+            - Follow Go documentation conventions (godoc style)
+
+      - name: Install markdownlint
+        run: npm install -g markdownlint-cli
+
+      - name: Validate generated documentation
+        continue-on-error: true
+        run: |
+          # Basic formatting check (only if docs exist)
+          if compgen -G "docs/**/*.md" > /dev/null 2>&1; then
+            markdownlint --fix docs/**/*.md || true
+          fi
+
+          # Fix README if it exists
+          if [ -f README.md ]; then
+            markdownlint --fix README.md || true
+          fi
+
+      - name: Check if documentation was updated
+        id: check_changes
+        run: |
+          if [ -f /tmp/no_docs_needed.txt ]; then
+            echo "needs_pr=false" >> $GITHUB_OUTPUT
+            echo "✅ Documentation is up-to-date. No PR needed."
+            cat /tmp/no_docs_needed.txt
+          elif git status --short | grep -qE "(docs/|README.md)"; then
+            echo "needs_pr=true" >> $GITHUB_OUTPUT
+            echo "📝 Documentation changes detected."
+            echo ""
+            echo "Modified files:"
+            git status --short | grep -E "(docs/|README.md)"
+          else
+            echo "needs_pr=false" >> $GITHUB_OUTPUT
+            echo "ℹ️ No documentation changes generated."
+          fi
+
+      - name: Create Documentation PR
+        if: steps.check_changes.outputs.needs_pr == 'true'
+        id: create_pr
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: |
+            docs: Update documentation for PR #${{ steps.pr_info.outputs.pr_number }}
+
+            Auto-generated comprehensive documentation based on:
+            ${{ steps.pr_info.outputs.pr_title }}
+
+            Merged by: @${{ steps.pr_info.outputs.pr_author }}
+
+            🤖 Generated with Claude Code
+          branch: docs/update-pr-${{ steps.pr_info.outputs.pr_number }}
+          delete-branch: true
+          title: "📚 docs: Update for PR #${{ steps.pr_info.outputs.pr_number }}"
+          body: |
+            ## 📝 Documentation Update
+
+            This PR contains documentation updates based on changes merged in **PR #${{ steps.pr_info.outputs.pr_number }}**.
+
+            ### Original PR
+
+            - **Title:** ${{ steps.pr_info.outputs.pr_title }}
+            - **Author:** @${{ steps.pr_info.outputs.pr_author }}
+            - **Link:** #${{ steps.pr_info.outputs.pr_number }}
+
+            ### Changes Included
+
+            Documentation has been generated/updated based on analysis of all related modules:
+
+            ```
+            $(cat /tmp/changed_files.txt)
+            ```
+
+            ### Files Modified
+
+            ```
+            $(git status --short | grep -E "(docs/|README.md)")
+            ```
+
+            ---
+
+            ### 📋 Review Checklist for Docs Team
+
+            - [ ] **Technical Accuracy** - Verify all technical details are correct
+            - [ ] **Code Examples** - Test that code examples actually work
+            - [ ] **Completeness** - All relevant aspects are documented
+            - [ ] **Links** - All internal and external links work
+            - [ ] **Formatting** - Markdown renders correctly
+            - [ ] **Clarity** - Documentation is easy to understand
+            - [ ] **No Sensitive Data** - No API keys, secrets, or internal URLs
+
+            ---
+
+            🤖 **Auto-generated by Claude Code**
+
+            /cc @docs-team
+          labels: |
+            documentation
+            needs-review
+            auto-generated
+          # Note: team-reviewers only works in organization repos with a visible team
+          # For personal repos, remove this line or use 'reviewers' instead
+          # team-reviewers: |
+          #   docs-team
+          # For personal repos, uncomment this instead:
+          # reviewers: |
+          #   your-username
+          draft: false
+
+      - name: Add comment to PR
+        if: steps.create_pr.outputs.pull-request-number != ''
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: ${{ steps.create_pr.outputs.pull-request-number }},
+              body: `## 🎉 Documentation PR Created!
+
+            **What's in this PR:**
+            - Comprehensive markdown documentation
+            - Generated by analyzing PR #${{ steps.pr_info.outputs.pr_number }} and all related modules
+            - Verbose, detailed content with examples
+
+            **Next Steps:**
+            1. Review the generated documentation
+            2. Test any code examples
+            3. Approve and merge when satisfied
+
+            **Feedback:** If you find issues, comment on specific lines in the "Files changed" tab.`
+            });
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## Documentation Bot Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Triggered by:** PR #${{ steps.pr_info.outputs.pr_number }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Documentation needed:** ${{ steps.check_changes.outputs.needs_pr }}" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ steps.check_changes.outputs.needs_pr }}" == "true" ]; then
+            echo "- **Documentation PR:** #${{ steps.create_pr.outputs.pull-request-number }}" >> $GITHUB_STEP_SUMMARY
+            echo "- **PR URL:** ${{ steps.create_pr.outputs.pull-request-url }}" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- **Action:** No PR created (docs are current)" >> $GITHUB_STEP_SUMMARY
+          fi
