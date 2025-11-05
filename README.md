@@ -135,6 +135,7 @@ The bot automatically runs when a PR is merged to `main`. To test it:
 Workflow file: `.github/workflows/docs-bot.yml`
 
 Triggers on:
+
 ```yaml
 on:
   pull_request:
@@ -143,6 +144,7 @@ on:
 ```
 
 Only runs if PR was actually merged:
+
 ```yaml
 if: github.event.pull_request.merged == true
 ```
@@ -164,6 +166,7 @@ Uses **Claude Code GitHub Action** (official):
 ### 3. Documentation Generation
 
 Claude Code:
+
 - Reads all changed files from the merged PR
 - Analyzes ALL related modules (not just changed files)
 - Checks existing documentation in `docs/` folder
@@ -253,6 +256,7 @@ reviewers: |
 ### Documentation Style
 
 The bot generates:
+
 - **Verbose** - Comprehensive, not minimal
 - **Examples** - Complete, runnable code examples
 - **Tables** - Structured data (fields, params, responses)
@@ -262,6 +266,7 @@ The bot generates:
 ## 🎓 Design Document
 
 See [DESIGN.md](./DESIGN.md) for:
+
 - Complete architecture diagrams
 - Workflow details
 - Prompt engineering examples
@@ -279,9 +284,9 @@ See [DESIGN.md](./DESIGN.md) for:
 
 ## 📖 Resources
 
-- **Claude Code GitHub Action**: https://docs.claude.com/en/docs/claude-code/github-actions
-- **Claude API Docs**: https://docs.anthropic.com/
-- **peter-evans/create-pull-request**: https://github.com/peter-evans/create-pull-request
+- **Claude Code GitHub Action**: <https://docs.claude.com/en/docs/claude-code/github-actions>
+- **Claude API Docs**: <https://docs.anthropic.com/>
+- **peter-evans/create-pull-request**: <https://github.com/peter-evans/create-pull-request>
 
 ## 📄 License
 
