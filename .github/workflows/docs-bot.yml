@@ -79,13 +79,6 @@ jobs:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           show_full_output: true
-          claude_args: "--permissionMode permissive"
-          additional_permissions: |
-            {
-              "read": ["/tmp/changed_files.txt", "**/*.md", "**/*.go"],
-              "write": ["**/*.md"],
-              "edit": ["**/*.md"]
-            }
           prompt: |
             # ⚠️ CRITICAL RULES - READ FIRST ⚠️
 
@@ -138,7 +131,7 @@ jobs:
             - Update ANY relevant .md files you discovered in Step 1 - not a fixed list!
             - ALWAYS use Edit tool for existing files (NOT Write!)
             - Match changes to docs: handler changes → handler docs, model changes → model docs, etc.
-            - Always update README.md with high-level summary of changes
+            - Update README.md if high-level project changes warrant it (optional, not required)
 
             ### Step 4: Documentation Requirements
             Make documentation COMPREHENSIVE and DETAILED:
