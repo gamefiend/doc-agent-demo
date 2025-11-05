@@ -79,11 +79,11 @@ jobs:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           show_full_output: true
-          allowed_tools: write,edit,bash,read
           additional_permissions: |
             {
-              "write": ["*"],
-              "edit": ["*"]
+              "read": ["/tmp/changed_files.txt", "docs/**/*.md", "README.md", "internal/**/*.go", "cmd/**/*.go"],
+              "write": ["docs/**/*.md", "README.md"],
+              "edit": ["docs/**/*.md", "README.md"]
             }
           prompt: |
             # Documentation Update Task
