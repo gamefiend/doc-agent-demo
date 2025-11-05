@@ -4,11 +4,17 @@ on:
   pull_request:
     types: [closed]
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to generate docs for'
+        required: true
+        type: number
 
 jobs:
   update-docs:
-    # Only run if PR was actually merged (not just closed)
-    if: github.event.pull_request.merged == true
+    # Only run if PR was actually merged (not just closed) OR manually triggered
+    if: github.event.pull_request.merged == true || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -22,17 +28,41 @@ jobs:
 
       - name: Get merged PR information
         id: pr_info
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "pr_number=${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
-          echo "pr_title=${{ github.event.pull_request.title }}" >> $GITHUB_OUTPUT
-          echo "pr_author=${{ github.event.pull_request.user.login }}" >> $GITHUB_OUTPUT
+          # Determine if this is from PR event or manual trigger
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            PR_NUMBER="${{ github.event.inputs.pr_number }}"
+            echo "Manual trigger - fetching PR #$PR_NUMBER info via gh CLI"
+
+            # Get PR info using gh CLI
+            PR_DATA=$(gh pr view $PR_NUMBER --json title,author,headRefOid,baseRefOid,mergeCommit)
+            PR_TITLE=$(echo "$PR_DATA" | jq -r '.title')
+            PR_AUTHOR=$(echo "$PR_DATA" | jq -r '.author.login')
+            HEAD_SHA=$(echo "$PR_DATA" | jq -r '.headRefOid')
+            BASE_SHA=$(echo "$PR_DATA" | jq -r '.baseRefOid')
+          else
+            echo "PR merge event - using event data"
+            PR_NUMBER="${{ github.event.pull_request.number }}"
+            PR_TITLE="${{ github.event.pull_request.title }}"
+            PR_AUTHOR="${{ github.event.pull_request.user.login }}"
+            HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          fi
+
+          echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
+          echo "pr_title=$PR_TITLE" >> $GITHUB_OUTPUT
+          echo "pr_author=$PR_AUTHOR" >> $GITHUB_OUTPUT
+          echo "head_sha=$HEAD_SHA" >> $GITHUB_OUTPUT
+          echo "base_sha=$BASE_SHA" >> $GITHUB_OUTPUT
 
           # Fetch PR head commit (critical - it may not be in local main)
-          git fetch origin ${{ github.event.pull_request.head.sha }}
-          git fetch origin ${{ github.event.pull_request.base.sha }}
+          git fetch origin $HEAD_SHA
+          git fetch origin $BASE_SHA
 
           # Get list of changed files
-          git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }} > /tmp/changed_files.txt
+          git diff --name-only $BASE_SHA $HEAD_SHA > /tmp/changed_files.txt
           echo "Changed files:"
           cat /tmp/changed_files.txt
 
