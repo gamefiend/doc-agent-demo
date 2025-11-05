@@ -79,6 +79,13 @@ jobs:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           show_full_output: true
+          allowed_non_write_users: "*"
+          additional_permissions: |
+            {
+              "read": ["/tmp/changed_files.txt", "**/*.md", "**/*.go"],
+              "write": ["**/*.md"],
+              "edit": ["**/*.md"]
+            }
           prompt: |
             # ⚠️ CRITICAL RULES - READ FIRST ⚠️
 
