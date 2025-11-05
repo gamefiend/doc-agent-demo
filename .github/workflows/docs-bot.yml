@@ -57,14 +57,16 @@ jobs:
           echo "head_sha=$HEAD_SHA" >> $GITHUB_OUTPUT
           echo "base_sha=$BASE_SHA" >> $GITHUB_OUTPUT
 
-          # Fetch PR head commit (critical - it may not be in local main)
-          git fetch origin $HEAD_SHA
-          git fetch origin $BASE_SHA
-
-          # Get list of changed files
+          # Get list of changed files (fetch-depth: 0 already fetched everything)
           git diff --name-only $BASE_SHA $HEAD_SHA > /tmp/changed_files.txt
           echo "Changed files:"
           cat /tmp/changed_files.txt
+
+          # Save changed files list for PR body
+          CHANGED_FILES=$(cat /tmp/changed_files.txt)
+          echo "changed_files<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGED_FILES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Run Claude Code to Analyze & Generate Documentation
         uses: anthropics/claude-code-action@v1
@@ -99,15 +101,17 @@ jobs:
 
             4. **Generate/Update documentation (if needed):**
 
-               Create **VERBOSE, COMPREHENSIVE** markdown files in the `docs/` folder:
+               **CRITICAL: Use the Write tool to create these SPECIFIC files:**
 
-               For **Go API changes:**
+               For **Go API changes**, use Write tool to create:
                - `docs/API.md` - Complete API reference with all endpoints
                - `docs/ARCHITECTURE.md` - System architecture with Mermaid diagrams
                - `docs/DATA_MODELS.md` - Go structs and data models
 
-               **Always update:**
+               **Also use Write or Edit to update:**
                - `README.md` - Keep it fresh with latest info
+
+               **DO NOT create output.txt or any other files!**
 
             5. **Documentation style requirements:**
                - Be VERBOSE and DETAILED (not minimal)
@@ -123,6 +127,8 @@ jobs:
 
             ## Important Notes
 
+            - **MUST use Write tool to create docs/API.md, docs/ARCHITECTURE.md, docs/DATA_MODELS.md**
+            - **DO NOT create output.txt or log files**
             - Analyze ALL related modules, not just changed files
             - If no changes needed, create `/tmp/no_docs_needed.txt` and stop
             - Make documentation self-contained and comprehensive
@@ -158,6 +164,12 @@ jobs:
             echo ""
             echo "Modified files:"
             git status --short | grep -E "(docs/|README.md)"
+
+            # Capture modified files for PR body
+            MODIFIED_FILES=$(git status --short | grep -E "(docs/|README.md)" || echo "No files modified")
+            echo "modified_files<<EOF" >> $GITHUB_OUTPUT
+            echo "$MODIFIED_FILES" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
           else
             echo "needs_pr=false" >> $GITHUB_OUTPUT
             echo "ℹ️ No documentation changes generated."
@@ -197,13 +209,13 @@ jobs:
             Documentation has been generated/updated based on analysis of all related modules:
 
             ```
-            $(cat /tmp/changed_files.txt)
+            ${{ steps.pr_info.outputs.changed_files }}
             ```
 
             ### Files Modified
 
             ```
-            $(git status --short | grep -E "(docs/|README.md)")
+            ${{ steps.check_changes.outputs.modified_files }}
             ```
 
             ---
