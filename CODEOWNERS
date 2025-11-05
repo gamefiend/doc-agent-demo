@@ -1,0 +1,19 @@
+# CODEOWNERS — assign default reviewers/owners for paths in this repository
+# Use GitHub usernames (e.g. @org/team or @username). Update as needed.
+
+# Default owner for everything in the repo
+* @gamefiend
+
+# Owners for docs
+/docs/ @gamefiend
+
+# Owners for the pokedex API code
+/pokedex-api/ @gamefiend
+/pokedex-api/pokedex/ @gamefiend
+
+# Owners for GitHub configuration
+.github/ @gamefiend
+
+# Specific files
+/README.md @gamefiend
+/docs/pokedex_store.md @cormacf
