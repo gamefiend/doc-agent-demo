@@ -79,15 +79,7 @@ jobs:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           show_full_output: true
-          settings: |
-            {
-              "permissionMode": "permissive",
-              "permissions": {
-                "read": ["/tmp/changed_files.txt", "**/*.md", "**/*.go"],
-                "write": ["**/*.md"],
-                "edit": ["**/*.md"]
-              }
-            }
+          claude_args: "--permissionMode permissive"
           additional_permissions: |
             {
               "read": ["/tmp/changed_files.txt", "**/*.md", "**/*.go"],
