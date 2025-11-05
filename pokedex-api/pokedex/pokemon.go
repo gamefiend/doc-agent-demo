@@ -4,14 +4,18 @@ import (
 	"errors"
 	"strconv"
 	"sync"
+	"time"
 )
 
 // Pokemon represents a single entry in the personal Pokédex.
 type Pokemon struct {
-	ID     string `json:"id"`     // Unique identifier for the captured Pokemon
-	Name   string `json:"name"`   // The species name (e.g., "Pikachu")
-	CP     int    `json:"cp"`     // The Combat Power of the captured Pokemon
-	IsShiny bool  `json:"isShiny"` // Whether the Pokemon is a shiny variant
+	ID            string    `json:"id"`            // Unique identifier for the captured Pokemon
+	Name          string    `json:"name"`          // The species name (e.g., "Pikachu")
+	CP            int       `json:"cp"`            // The Combat Power of the captured Pokemon
+	IsShiny       bool      `json:"isShiny"`       // Whether the Pokemon is a shiny variant
+	Type          string    `json:"type"`          // The Pokemon type (e.g., "Electric", "Fire")
+	CatchDate     time.Time `json:"catchDate"`     // The date when the Pokemon was caught
+	CatchLocation string    `json:"catchLocation"` // The location where the Pokemon was caught
 }
 
 // Store holds the in-memory state of the Pokédex.
