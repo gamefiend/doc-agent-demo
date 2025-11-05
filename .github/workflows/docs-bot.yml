@@ -57,9 +57,10 @@ jobs:
           echo "head_sha=$HEAD_SHA" >> $GITHUB_OUTPUT
           echo "base_sha=$BASE_SHA" >> $GITHUB_OUTPUT
 
-          # Fetch commits (needed because PR branch may be deleted after merge)
-          git fetch origin $HEAD_SHA || echo "Already have $HEAD_SHA"
-          git fetch origin $BASE_SHA || echo "Already have $BASE_SHA"
+          # Fetch commits by refspec (needed because PR branch may be deleted after merge)
+          # GitHub doesn't expose raw SHA refs, so we use refspec format
+          git fetch origin $HEAD_SHA:refs/remotes/origin/pr-head-$PR_NUMBER || echo "Already have $HEAD_SHA"
+          git fetch origin $BASE_SHA:refs/remotes/origin/pr-base-$PR_NUMBER || echo "Already have $BASE_SHA"
 
           # Get list of changed files
           git diff --name-only $BASE_SHA $HEAD_SHA > /tmp/changed_files.txt
