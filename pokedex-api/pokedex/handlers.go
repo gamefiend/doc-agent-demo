@@ -112,4 +112,4 @@ func NewRouter(hc *HandlerContext) *mux.Router {
 	r.HandleFunc("/pokemon/{id}", hc.DeletePokemonHandler).Methods("DELETE")
 
 	return r
-} 
+}
