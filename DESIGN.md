@@ -2689,18 +2689,25 @@ go mod init github.com/yourorg/doc-agent-demo
 gh secret set ANTHROPIC_API_KEY
 ```
 
-### Week 1 - Day 3-4: Core Bot Logic
+### Week 1 - Day 3-4: Core Bot Logic (MVP)
+
+**⚠️ NOTE: MVP uses official tooling. Custom implementation is for future phases.**
 
 ```bash
-# 4. Implement git diff analyzer
-# pkg/docbot/diff.go - detect changed .go files
+# 4. Configure workflow to use official action
+# .github/workflows/docs-bot.yml
+# ✅ Already complete - using anthropics/claude-code-action@v1
 
-# 5. Implement minimal AST parser
-# pkg/docbot/parser.go - extract exported functions
+# 5. Write comprehensive prompt for documentation generation
+# Prompt engineering in workflow YAML
+# ✅ Already complete - analyzes all modules, generates verbose docs
 
-# 6. Implement Claude client with rate limiting
-# pkg/docbot/claude.go - call API, track costs
+# 6. Test smart detection logic
+# Verify /tmp/no_docs_needed.txt mechanism works
 ```
+
+**Future Enhancement (Phase 3+):**
+Custom implementation with diff analyzer, AST parser, and direct API client would be built in later phases if needed.
 
 ### Week 1 - Day 5-7: GitHub Integration (MVP)
 
@@ -2750,21 +2757,21 @@ Move to Phase 2 (validation) when:
 1. ❓ What's your Anthropic API budget per month?
 2. ❓ How many PRs per week does your team create?
 3. ❓ Should bot run on public repos or private only?
-4. ❓ Who will review bot suggestions and tune prompts?
+4. ❓ Who will review documentation PRs and provide feedback?
 5. ❓ What's the rollout plan? (Single repo first? All repos?)
 
 ---
 
 ## Final Recommendation
 
-**Build Phase 1 MVP first.** The architecture presented in sections 12-16 (cost optimization, heuristics, performance, UX, feedback) provides the foundation you need. Don't try to implement everything at once.
+**Build Phase 1 MVP first.** The current implementation provides a solid foundation using official tooling. Don't try to implement everything at once.
 
 **Timeline:**
-- Week 1-2: MVP (godoc suggestions only)
-- Week 3: Measure success, iterate on prompts
-- Week 4-5: Add validation or Swagger (based on team needs)
-- Week 6+: Expand based on proven value
+- Week 1-2: MVP (auto-generated docs PRs after merge) ✅ Complete
+- Week 3: Test with real PRs, gather docs team feedback
+- Week 4-5: Iterate on prompts and documentation quality
+- Week 6+: Add validation tools or expand to other languages
 
-**Remember:** A simple bot that works well for 80% of cases is infinitely more valuable than a complex bot that's too expensive or slow to run on every PR.
+**Remember:** A simple bot that generates comprehensive documentation PRs is infinitely more valuable than a complex bot that tries to do everything at once.
 
 Good luck! 🚀
