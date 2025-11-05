@@ -63,6 +63,7 @@ jobs:
 
           # Get list of changed files
           git diff --name-only $BASE_SHA $HEAD_SHA > /tmp/changed_files.txt
+          chmod +0777 /tmp/changed_files.txt
           echo "Changed files:"
           cat /tmp/changed_files.txt
 
