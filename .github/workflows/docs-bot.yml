@@ -86,64 +86,83 @@ jobs:
               "edit": ["docs/**/*.md", "README.md"]
             }
           prompt: |
-            # Documentation Update Task
+            # ⚠️ CRITICAL RULES - READ FIRST ⚠️
 
-            A pull request was just merged into main:
+            ## FORBIDDEN ACTIONS (You will FAIL if you do these):
+            ❌ DO NOT create output.txt
+            ❌ DO NOT create log files or temp files
+            ❌ DO NOT use Write tool on existing files
+            ❌ DO NOT skip updating existing documentation files
 
-            **PR #${{ steps.pr_info.outputs.pr_number }}:** ${{ steps.pr_info.outputs.pr_title }}
-            **Author:** @${{ steps.pr_info.outputs.pr_author }}
+            ## ALLOWED ACTIONS ONLY:
+            ✅ Use Edit tool to UPDATE existing .md files
+            ✅ Use Write tool ONLY for NEW files that don't exist
+            ✅ ONLY modify these files: docs/API.md, docs/ARCHITECTURE.md, docs/DATA_MODELS.md, README.md
 
-            ## Your Task
+            ---
 
-            **ALWAYS analyze and update/create documentation - never skip!**
+            # Your Task
 
-            1. **Analyze the merged PR changes:**
-               - Read the list of changed files from `/tmp/changed_files.txt`
-               - Read the actual content of ALL changed files
-               - Identify ALL related Go modules (not just changed files - analyze dependencies and related code)
+            PR #${{ steps.pr_info.outputs.pr_number }}: ${{ steps.pr_info.outputs.pr_title }}
+            Author: @${{ steps.pr_info.outputs.pr_author }}
 
-            2. **Check if documentation files already exist:**
-               - Check if `docs/API.md` exists
-               - Check if `docs/ARCHITECTURE.md` exists
-               - Check if `docs/DATA_MODELS.md` exists
-               - Read them if they exist
+            ## Step-by-Step Instructions (Follow in order):
 
-            3. **Update OR Create documentation files:**
+            ### Step 1: Analyze Changes
+            1. Use Read tool on `/tmp/changed_files.txt` to see what changed
+            2. Use Read tool on each changed file to understand the changes
+            3. Identify related Go modules and dependencies
 
-               **CRITICAL INSTRUCTIONS:**
-               - **If `docs/API.md` exists:** Use Edit tool to update it with latest API info
-               - **If `docs/API.md` does NOT exist:** Use Write tool to create it
-               - **If `docs/ARCHITECTURE.md` exists:** Use Edit tool to update it
-               - **If `docs/ARCHITECTURE.md` does NOT exist:** Use Write tool to create it with Mermaid diagrams
-               - **If `docs/DATA_MODELS.md` exists:** Use Edit tool to update it
-               - **If `docs/DATA_MODELS.md` does NOT exist:** Use Write tool to create it
-               - **Always update `README.md`** with Edit tool to reflect latest changes
+            ### Step 2: Check Existing Documentation
+            Use Read tool to check and read these files (use absolute paths from pwd):
+            1. `docs/API.md`
+            2. `docs/ARCHITECTURE.md`
+            3. `docs/DATA_MODELS.md`
+            4. `README.md`
 
-               **NEVER create output.txt, log files, or temp files!**
-               **ONLY create/modify .md files in docs/ folder and README.md**
+            You MUST use Read tool on EACH file to determine if it exists before deciding to use Edit or Write.
 
-            5. **Documentation style requirements:**
-               - Be VERBOSE and DETAILED (not minimal)
-               - Include complete code examples (not snippets)
-               - Add tables for structured data (props, fields, params)
-               - Use collapsible sections for long examples
-               - Include mermaid diagrams where appropriate
-               - Add cross-references to related docs
-               - Include "Last updated" timestamp
-               - Show request/response examples for API endpoints
-               - Include error responses
-               - Add code examples in multiple languages (cURL, Go, Python)
+            ### Step 3: Update Documentation Files
 
-            ## Important Notes
+            For EACH file above that EXISTS:
+            - ✅ Use Edit tool to update it with new information
+            - Add/update sections relevant to PR changes
+            - Keep existing content, just enhance/update it
 
-            - **MUST use Write tool to create NEW docs, Edit tool to update EXISTING docs**
-            - **DO NOT create output.txt, log files, or any temp files**
-            - **ONLY modify: docs/API.md, docs/ARCHITECTURE.md, docs/DATA_MODELS.md, README.md**
-            - Analyze ALL related modules, not just changed files
-            - Always update/create docs - let git detect if actual changes were made
-            - Make documentation self-contained and comprehensive
-            - Use examples from the actual codebase
-            - Follow Go documentation conventions (godoc style)
+            For EACH file that does NOT exist:
+            - ✅ Use Write tool to create it from scratch
+
+            ### Step 4: Documentation Requirements
+            - Use VERBOSE, DETAILED content (not minimal)
+            - Include COMPLETE code examples (not snippets)
+            - Add tables for structured data
+            - Include mermaid diagrams where appropriate
+            - Add "Last updated" timestamp
+            - Show request/response examples for APIs
+            - Include error responses
+
+            ## Final Reminder:
+            - ❌ DO NOT create output.txt or ANY temp files
+            - ✅ ONLY modify .md files in docs/ folder and README.md
+            - ✅ Use Edit for existing files, Write for new files only
+            - Make changes even if they seem small - let git detect if there are real changes
+
+      - name: Verify no forbidden files created
+        run: |
+          # Check if output.txt or other forbidden files were created
+          if [ -f "output.txt" ]; then
+            echo "❌ ERROR: output.txt was created (forbidden!)"
+            echo "Bot did not follow instructions properly"
+            exit 1
+          fi
+
+          if git status --short | grep -qE "\.txt$|\.log$"; then
+            echo "❌ ERROR: Text or log files were created (forbidden!)"
+            git status --short | grep -E "\.txt$|\.log$"
+            exit 1
+          fi
+
+          echo "✅ No forbidden files detected"
 
       - name: Install markdownlint
         run: npm install -g markdownlint-cli
