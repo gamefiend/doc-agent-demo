@@ -82,8 +82,8 @@ jobs:
           allowed_tools: write,edit,bash,read
           additional_permissions: |
             {
-              "write": ["docs/**/*.md", "README.md"],
-              "edit": ["docs/**/*.md", "README.md"]
+              "write": ["*"],
+              "edit": ["*"]
             }
           prompt: |
             # Documentation Update Task
