@@ -80,7 +80,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           show_full_output: true
           allowed_non_write_users: "*"
-          claude_args: "--permission-mode permissive"
+          claude_args: "--permission-mode bypassPermissions"
           additional_permissions: |
             {
               "read": ["/tmp/changed_files.txt", "**/*.md", "**/*.go"],
