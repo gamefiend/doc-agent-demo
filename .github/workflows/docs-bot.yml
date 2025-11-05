@@ -82,22 +82,29 @@ jobs:
           additional_permissions: |
             {
               "read": ["/tmp/changed_files.txt", "docs/**/*.md", "README.md", "internal/**/*.go", "cmd/**/*.go"],
-              "write": ["docs/**/*.md", "README.md"],
-              "edit": ["docs/**/*.md", "README.md"]
+              "write": ["docs/API.md", "docs/ARCHITECTURE.md", "docs/DATA_MODELS.md", "README.md"],
+              "edit": ["docs/API.md", "docs/ARCHITECTURE.md", "docs/DATA_MODELS.md", "README.md"]
             }
           prompt: |
             # ⚠️ CRITICAL RULES - READ FIRST ⚠️
 
-            ## FORBIDDEN ACTIONS (You will FAIL if you do these):
-            ❌ DO NOT create output.txt
-            ❌ DO NOT create log files or temp files
-            ❌ DO NOT use Write tool on existing files
-            ❌ DO NOT skip updating existing documentation files
+            ## ❌ ABSOLUTELY FORBIDDEN - WORKFLOW WILL FAIL:
+            ❌ **NEVER create output.txt** - This file is STRICTLY FORBIDDEN
+            ❌ **NEVER create ANY .txt files** - Only .md files allowed
+            ❌ **NEVER create log files or temp files**
+            ❌ **NEVER use Write tool on files that already exist**
+            ❌ **NEVER skip updating existing documentation files**
 
-            ## ALLOWED ACTIONS ONLY:
-            ✅ Use Edit tool to UPDATE existing .md files
-            ✅ Use Write tool ONLY for NEW files that don't exist
-            ✅ ONLY modify these files: docs/API.md, docs/ARCHITECTURE.md, docs/DATA_MODELS.md, README.md
+            ## ✅ ONLY THESE ACTIONS ARE ALLOWED:
+            ✅ Use Edit tool to UPDATE existing .md files (docs/API.md, docs/ARCHITECTURE.md, docs/DATA_MODELS.md, README.md)
+            ✅ Use Write tool ONLY if Read tool fails (file doesn't exist)
+            ✅ Read tool to check file existence FIRST before any Edit/Write
+
+            ## 📋 EXACT FILES YOU MAY MODIFY (no others):
+            1. docs/API.md
+            2. docs/ARCHITECTURE.md
+            3. docs/DATA_MODELS.md
+            4. README.md
 
             ---
 
@@ -106,40 +113,67 @@ jobs:
             PR #${{ steps.pr_info.outputs.pr_number }}: ${{ steps.pr_info.outputs.pr_title }}
             Author: @${{ steps.pr_info.outputs.pr_author }}
 
-            ## Step-by-Step Instructions (Follow in order):
+            ## Step-by-Step MANDATORY Workflow:
 
-            ### Step 1: Analyze Changes
-            1. Use Read tool on `/tmp/changed_files.txt` to see what changed
-            2. Use Read tool on each changed file to understand the changes
-            3. Identify related Go modules and dependencies
+            ### Step 1: Read Changed Files
+            ```
+            Action: Use Read tool on /tmp/changed_files.txt
+            Then: Use Read tool on each file listed to understand changes
+            ```
 
-            ### Step 2: Check Existing Documentation
-            Use Read tool to check and read these files (use absolute paths from pwd):
-            1. `docs/API.md`
-            2. `docs/ARCHITECTURE.md`
-            3. `docs/DATA_MODELS.md`
-            4. `README.md`
+            ### Step 2: Read ALL Existing Docs (REQUIRED - DO NOT SKIP!)
+            You MUST execute Read tool on each file below (use EXACT paths as shown):
 
-            You MUST use Read tool on EACH file to determine if it exists before deciding to use Edit or Write.
+            ```
+            1. Read tool file_path: "docs/API.md"
+            2. Read tool file_path: "docs/ARCHITECTURE.md"
+            3. Read tool file_path: "docs/DATA_MODELS.md"
+            4. Read tool file_path: "README.md"
+            ```
 
-            ### Step 3: Update Documentation Files
+            **IMPORTANT:** After reading each file above, you will know it EXISTS.
+            DO NOT use Write tool on files that exist!
 
-            For EACH file above that EXISTS:
-            - ✅ Use Edit tool to update it with new information
-            - Add/update sections relevant to PR changes
-            - Keep existing content, just enhance/update it
+            ### Step 3: Update Documentation (REQUIRED!)
 
-            For EACH file that does NOT exist:
-            - ✅ Use Write tool to create it from scratch
+            For **docs/API.md** (you just read it - it EXISTS):
+            ```
+            Action: Use Edit tool (NOT Write!)
+            Update: Add/modify API documentation based on PR changes
+            ```
+
+            For **docs/ARCHITECTURE.md** (you just read it - it EXISTS):
+            ```
+            Action: Use Edit tool (NOT Write!)
+            Update: Add/modify architecture docs, update Mermaid diagrams if needed
+            ```
+
+            For **docs/DATA_MODELS.md** (you just read it - it EXISTS):
+            ```
+            Action: Use Edit tool (NOT Write!)
+            Update: Add/modify data models based on PR changes
+            ```
+
+            For **README.md** (you just read it - it EXISTS):
+            ```
+            Action: Use Edit tool (NOT Write!)
+            Update: Update relevant sections
+            ```
+
+            **RULE: Since you read these files in Step 2, you KNOW they exist = use Edit tool ONLY!**
 
             ### Step 4: Documentation Requirements
-            - Use VERBOSE, DETAILED content (not minimal)
-            - Include COMPLETE code examples (not snippets)
-            - Add tables for structured data
-            - Include mermaid diagrams where appropriate
-            - Add "Last updated" timestamp
-            - Show request/response examples for APIs
-            - Include error responses
+            Make documentation COMPREHENSIVE and DETAILED:
+            - VERBOSE, DETAILED content (not minimal summaries)
+            - COMPLETE code examples (not just snippets)
+            - Tables for structured data (props, fields, parameters)
+            - Collapsible sections for long examples
+            - Mermaid diagrams for architecture/flows
+            - Cross-references to related documentation
+            - "Last updated" timestamp in each file
+            - Request/response examples for ALL API endpoints
+            - Error responses and status codes
+            - Code examples in multiple languages (cURL, Go, Python where applicable)
 
             ## Final Reminder:
             - ❌ DO NOT create output.txt or ANY temp files
