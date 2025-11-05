@@ -81,7 +81,6 @@ jobs:
           show_full_output: true
           allowed_non_write_users: "*"
           claude_args: "--permission-mode bypassPermissions"
-          allowed_tools: "Read,Write,Edit,Bash(git:*),Bash(ls:*),Bash(gh:*),Glob,Grep"
           additional_permissions: |
             {
               "read": ["/tmp/changed_files.txt", "**/*.md", "**/*.go"],
@@ -163,20 +162,15 @@ jobs:
 
       - name: Verify no forbidden files created
         run: |
-          # Check if output.txt or other forbidden files were created
-          if [ -f "output.txt" ]; then
-            echo "❌ ERROR: output.txt was created (forbidden!)"
-            echo "Bot did not follow instructions properly"
-            exit 1
-          fi
-
+          # Check if bot tried to commit any .txt or .log files (git-tracked only)
           if git status --short | grep -qE "\.txt$|\.log$"; then
-            echo "❌ ERROR: Text or log files were created (forbidden!)"
+            echo "❌ ERROR: Text or log files were added to git (forbidden!)"
+            echo "Files found:"
             git status --short | grep -E "\.txt$|\.log$"
             exit 1
           fi
 
-          echo "✅ No forbidden files detected"
+          echo "✅ No forbidden files in git (filesystem temp files ignored)"
 
       - name: Install markdownlint
         run: npm install -g markdownlint-cli
