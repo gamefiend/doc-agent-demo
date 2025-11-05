@@ -3,15 +3,36 @@ package main
 import (
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/yourorg/doc-agent-demo/internal/handlers"
 	"github.com/yourorg/doc-agent-demo/internal/models"
 )
 
+// RequestLoggerMiddleware logs API requests with timing
+func RequestLoggerMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		start := time.Now()
+		path := c.Request.URL.Path
+		method := c.Request.Method
+
+		// Process request
+		c.Next()
+
+		// Log after request
+		duration := time.Since(start)
+		status := c.Writer.Status()
+		log.Printf("[%s] %s - Status: %d - Duration: %v", method, path, status, duration)
+	}
+}
+
 func main() {
 	// Create Gin router
 	r := gin.Default()
+
+	// Add custom middleware
+	r.Use(RequestLoggerMiddleware())
 
 	// API v1 group
 	v1 := r.Group("/api/v1")
@@ -22,6 +43,7 @@ func main() {
 		// User endpoints
 		v1.GET("/users", handlers.ListUsers)
 		v1.GET("/users/:id", handlers.GetUser)
+		v1.GET("/users/:id/profile", handlers.GetUserProfile) // NEW: Enhanced profile endpoint
 		v1.POST("/users", handlers.CreateUser)
 		v1.PUT("/users/:id", handlers.UpdateUser)
 		v1.DELETE("/users/:id", handlers.DeleteUser)
