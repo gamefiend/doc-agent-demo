@@ -96,9 +96,10 @@ jobs:
             ❌ **NEVER skip updating existing documentation files**
 
             ## ✅ ONLY THESE ACTIONS ARE ALLOWED:
-            ✅ Use Edit tool to UPDATE existing .md files (docs/API.md, docs/ARCHITECTURE.md, docs/DATA_MODELS.md, README.md)
-            ✅ Use Write tool ONLY if Read tool fails (file doesn't exist)
-            ✅ Read tool to check file existence FIRST before any Edit/Write
+            ✅ Use Edit tool to UPDATE any existing .md files under docs/ folder and README.md
+            ✅ Use Write tool ONLY for .md files that don't exist yet
+            ✅ Use Glob/Bash tools to discover all .md files in docs/
+            ✅ Read tool to check file content and existence FIRST before any Edit/Write
 
             ---
 
