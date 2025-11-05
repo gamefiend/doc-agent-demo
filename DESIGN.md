@@ -2006,31 +2006,27 @@ type DocCache struct {
 
 **Free Tier Limits**: 2000 minutes/month for private repos
 
-#### Optimization Strategies
+#### Optimization Strategies (MVP Approach)
 
 1. **Conditional Execution**:
 ```yaml
 jobs:
-  doc-bot:
+  update-docs:
     runs-on: ubuntu-latest
-    # Only run on PRs, not every push
-    if: github.event_name == 'pull_request'
-    # Skip for draft PRs
-    if: github.event.pull_request.draft == false
+    # Only run when PR is actually merged, not just closed
+    if: github.event.pull_request.merged == true
 ```
 
-2. **Selective File Watching**:
+2. **Smart Detection**:
 ```yaml
-on:
-  pull_request:
-    paths:
-      - 'internal/**/*.go'
-      - 'pkg/**/*.go'
-      - 'cmd/**/*.go'
-    paths-ignore:
-      - '**/*_test.go'
-      - 'vendor/**'
-      - 'docs/**'
+# Bot creates /tmp/no_docs_needed.txt if docs are current
+# Workflow checks this file before creating PR
+- name: Check if documentation was updated
+  id: check_changes
+  run: |
+    if [ -f /tmp/no_docs_needed.txt ]; then
+      echo "needs_pr=false" >> $GITHUB_OUTPUT
+    fi
 ```
 
 3. **Tool Caching**:
@@ -2066,41 +2062,44 @@ on:
 
 ## 13. Execution Heuristics - When to Run What
 
-### 13.1 Decision Tree
+**⚠️ NOTE: This section describes FUTURE enhancements (Phase 3+). Current MVP has simpler logic.**
+
+**Current MVP (Phase 1) Decision Tree:**
 
 ```
-PR Created/Updated
+PR Merged to Main
 │
-├─ Draft PR?
-│  └─ YES → Skip (exit early)
-│
-├─ Changes *.go files?
-│  └─ NO → Skip
+├─ Was PR actually merged?
+│  └─ NO → Skip (exit early)
 │  └─ YES → Continue
 │
-├─ Changes only test files?
-│  └─ YES → Skip
-│  └─ NO → Continue
+├─ Get changed files from PR
 │
-├─ Run Basic Godoc Bot (always for non-draft PRs with Go changes)
-│  ├─ Analyze changed functions
-│  ├─ Generate suggestions
-│  └─ Post PR comments
+├─ Analyze ALL related Go modules
+│  ├─ Read changed files
+│  ├─ Parse dependencies
+│  └─ Map related modules
 │
-├─ Has label "docs:swagger" OR changes internal/handlers/*.go?
-│  └─ YES → Run Swagger generation
-│  └─ NO → Skip
+├─ Check existing documentation
+│  └─ docs/ folder
+│  └─ README.md
 │
-├─ Has label "docs:validate"?
-│  └─ YES → Run Vale + markdownlint
-│  └─ NO → Skip (save time)
+├─ Documentation current?
+│  └─ YES → Create /tmp/no_docs_needed.txt (no PR)
+│  └─ NO → Generate comprehensive markdown docs
 │
-└─ Has label "docs:test" AND PR approved?
-   └─ YES → Run Doc Detective (requires app running)
-   └─ NO → Skip (expensive)
+└─ Documentation generated?
+   └─ YES → Create new PR for docs team
+   └─ NO → End (no changes)
 ```
 
-### 13.2 Label-Based Gating
+**Future Enhancement (Phase 3+) Decision Tree:**
+
+Original complex decision tree with labels, file triggers, etc. will be implemented in later phases.
+
+### 13.2 Label-Based Gating (Future Phase)
+
+**⚠️ NOTE: MVP does not use labels. This is for Phase 3+ enhancement.**
 
 | Label | Triggers | Reason |
 |-------|----------|--------|
@@ -2110,7 +2109,9 @@ PR Created/Updated
 | `docs:skip` | Skip all documentation checks | Emergency escape hatch |
 | `docs:full` | Run everything | For release candidates |
 
-### 13.3 File Path Triggers
+### 13.3 File Path Triggers (Future Phase)
+
+**⚠️ NOTE: MVP analyzes all related modules. This is for Phase 3+ enhancement.**
 
 ```go
 type TriggerRules struct {
@@ -2485,30 +2486,33 @@ overrides:
     - "pkg/api/**"
 ```
 
-### 16.5 Continuous Improvement Dashboard
+### 16.5 Continuous Improvement Dashboard (Future Phase)
+
+**⚠️ NOTE: MVP uses simpler metrics. This dashboard is for Phase 3+.**
+
+**MVP Dashboard (Phase 1):**
 
 ```
 📊 Documentation Bot Health (Last 30 Days)
 
 ┌─────────────────────────────────────────┐
-│ Suggestions Generated:  247             │
-│ Acceptance Rate:        73% (180/247)   │
-│ Positive Reactions:     156 👍          │
-│ Negative Reactions:      24 👎          │
-│ False Positives:         12 (5%)        │
-│ Avg Cost per PR:         $0.12          │
-│ Avg Runtime:             1m 45s         │
+│ PRs Merged:             45              │
+│ Documentation PRs Created: 12           │
+│ PRs Merged by Docs Team: 10             │
+│ PRs Rejected/Closed:    2               │
+│ False Positives:        1 (8%)          │
+│ Avg Workflow Runtime:   3m 12s          │
 └─────────────────────────────────────────┘
 
-Top Issues (Negative Reactions):
-1. Over-verbose suggestions (8)
-2. Suggested docs for test helpers (4)
-3. Incorrect parameter descriptions (3)
+Top Issues:
+1. Documentation too verbose (2 PRs edited heavily)
+2. Missed related module (1 PR)
+3. Created PR when docs current (1 false positive)
 
-Prompt Performance:
-- v1.2.3: 78% approval ⭐
-- v1.2.2: 65% approval
-- v1.1.0: 58% approval (deprecated)
+Documentation Quality:
+- PRs approved with no edits: 8 (80%)
+- PRs requiring minor edits: 2 (20%)
+- PRs rejected as unnecessary: 2
 ```
 
 ---
@@ -2623,12 +2627,12 @@ Prompt Performance:
 | API rate limits hit | Medium | High | Implement exponential backoff, queue |
 | Claude API downtime | Low | Low | Graceful degradation, manual fallback |
 
-### 20.2 Fallback Strategies
+### 20.2 Fallback Strategies (MVP)
 
-1. **API Failure**: Skip documentation for this PR, notify in comment
-2. **Validation Failure**: Post suggestions anyway with warning
-3. **Performance Issues**: Limit to 20 functions max, prioritize exported
-4. **Quality Issues**: Use reaction feedback to improve over time
+1. **API Failure**: Workflow fails gracefully, comment on merged PR with error
+2. **Generation Failure**: Create GitHub issue for manual documentation review
+3. **Performance Issues**: Workflow timeout (10 minutes max), fail and notify
+4. **Quality Issues**: Docs team reviews and provides feedback via PR comments
 
 ---
 
@@ -2698,44 +2702,47 @@ gh secret set ANTHROPIC_API_KEY
 # pkg/docbot/claude.go - call API, track costs
 ```
 
-### Week 1 - Day 5-7: GitHub Integration
+### Week 1 - Day 5-7: GitHub Integration (MVP)
 
 ```bash
 # 7. Create GitHub Actions workflow
-# .github/workflows/docs.yml
+# .github/workflows/docs-bot.yml
+# ✅ Already complete - using Claude Code GitHub Action
 
-# 8. Implement PR comment poster
-# pkg/docbot/github.go - post suggestions
+# 8. Set up Anthropic API key secret
+# gh secret set ANTHROPIC_API_KEY
+# ✅ Already complete
 
-# 9. Test on 5 sample PRs
-# Collect feedback, measure costs
+# 9. Test by merging sample PRs
+# Verify documentation PRs are created correctly
 ```
 
-### Week 2: Polish & Iterate
+### Week 2: Polish & Iterate (MVP)
 
 ```bash
-# 10. Add cost tracking and reporting
-# 11. Improve prompt templates based on results
-# 12. Add caching for repeated functions
-# 13. Write tests for core components
-# 14. Document setup instructions
+# 10. Improve prompt for better documentation quality
+# 11. Test smart detection (no PR when docs current)
+# 12. Verify docs team workflow
+# 13. Test with various PR types
+# 14. Gather feedback from docs team
 ```
 
-### Success Metrics for Week 1-2
+### Success Metrics for Week 1-2 (MVP)
 
-- [ ] Bot successfully runs on 10 PRs
-- [ ] Average cost < $0.10 per PR
-- [ ] Runtime < 2 minutes
-- [ ] 70%+ positive reactions (👍)
-- [ ] Zero critical bugs or false positives
+- [ ] Bot successfully runs when PRs are merged
+- [ ] Documentation PRs created only when needed
+- [ ] Comprehensive markdown files generated (API.md, ARCHITECTURE.md, etc.)
+- [ ] Zero false positives (PRs created when docs are current)
+- [ ] Docs team can review and approve PRs
+- [ ] Workflow completes in reasonable time
 
 ### When to Move to Phase 2
 
 Move to Phase 2 (validation) when:
-- ✅ 20+ PRs processed successfully
-- ✅ 75%+ positive reaction rate
-- ✅ Costs consistently < $0.10/PR
-- ✅ Team actively using suggestions
+- ✅ 10+ documentation PRs created and reviewed
+- ✅ Docs team satisfied with quality
+- ✅ Smart detection working (no unnecessary PRs)
+- ✅ Documentation is accurate and comprehensive
 - ✅ Prompt templates stabilized
 
 ### Questions to Answer Before Building
