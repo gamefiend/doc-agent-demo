@@ -83,3 +83,27 @@ func DeleteUser(c *gin.Context) {
 		"message": "user deleted successfully",
 	})
 }
+
+// GetUserProfile returns detailed user profile including avatar and phone
+func GetUserProfile(c *gin.Context) {
+	id := c.Param("id")
+
+	user, exists := models.GetUserByID(id)
+	if !exists {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": "user not found",
+		})
+		return
+	}
+
+	// Return enhanced profile with additional computed fields
+	c.JSON(http.StatusOK, gin.H{
+		"user": user,
+		"profile": gin.H{
+			"has_avatar":       user.Avatar != "",
+			"has_phone_number": user.PhoneNumber != "",
+			"is_admin":         user.Role == "admin",
+			"account_age_days": int(user.CreatedAt.Sub(user.CreatedAt).Hours() / 24),
+		},
+	})
+}
