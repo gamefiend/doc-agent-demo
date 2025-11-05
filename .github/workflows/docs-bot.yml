@@ -57,7 +57,11 @@ jobs:
           echo "head_sha=$HEAD_SHA" >> $GITHUB_OUTPUT
           echo "base_sha=$BASE_SHA" >> $GITHUB_OUTPUT
 
-          # Get list of changed files (fetch-depth: 0 already fetched everything)
+          # Fetch commits (needed because PR branch may be deleted after merge)
+          git fetch origin $HEAD_SHA || echo "Already have $HEAD_SHA"
+          git fetch origin $BASE_SHA || echo "Already have $BASE_SHA"
+
+          # Get list of changed files
           git diff --name-only $BASE_SHA $HEAD_SHA > /tmp/changed_files.txt
           echo "Changed files:"
           cat /tmp/changed_files.txt
@@ -84,34 +88,32 @@ jobs:
 
             ## Your Task
 
+            **ALWAYS analyze and update/create documentation - never skip!**
+
             1. **Analyze the merged PR changes:**
                - Read the list of changed files from `/tmp/changed_files.txt`
                - Read the actual content of ALL changed files
                - Identify ALL related Go modules (not just changed files - analyze dependencies and related code)
 
-            2. **Check existing documentation:**
-               - Look in the `docs/` folder for existing documentation
-               - Check `README.md` for relevant sections
-               - Determine if documentation exists for these changes
+            2. **Check if documentation files already exist:**
+               - Check if `docs/API.md` exists
+               - Check if `docs/ARCHITECTURE.md` exists
+               - Check if `docs/DATA_MODELS.md` exists
+               - Read them if they exist
 
-            3. **Make a decision:**
-               - **If documentation is up-to-date:** Create a file `/tmp/no_docs_needed.txt` with message "Documentation is current"
-               - **If documentation is missing:** Generate comprehensive new documentation
-               - **If documentation is outdated:** Update it with improvements
+            3. **Update OR Create documentation files:**
 
-            4. **Generate/Update documentation (if needed):**
+               **CRITICAL INSTRUCTIONS:**
+               - **If `docs/API.md` exists:** Use Edit tool to update it with latest API info
+               - **If `docs/API.md` does NOT exist:** Use Write tool to create it
+               - **If `docs/ARCHITECTURE.md` exists:** Use Edit tool to update it
+               - **If `docs/ARCHITECTURE.md` does NOT exist:** Use Write tool to create it with Mermaid diagrams
+               - **If `docs/DATA_MODELS.md` exists:** Use Edit tool to update it
+               - **If `docs/DATA_MODELS.md` does NOT exist:** Use Write tool to create it
+               - **Always update `README.md`** with Edit tool to reflect latest changes
 
-               **CRITICAL: Use the Write tool to create these SPECIFIC files:**
-
-               For **Go API changes**, use Write tool to create:
-               - `docs/API.md` - Complete API reference with all endpoints
-               - `docs/ARCHITECTURE.md` - System architecture with Mermaid diagrams
-               - `docs/DATA_MODELS.md` - Go structs and data models
-
-               **Also use Write or Edit to update:**
-               - `README.md` - Keep it fresh with latest info
-
-               **DO NOT create output.txt or any other files!**
+               **NEVER create output.txt, log files, or temp files!**
+               **ONLY create/modify .md files in docs/ folder and README.md**
 
             5. **Documentation style requirements:**
                - Be VERBOSE and DETAILED (not minimal)
@@ -127,10 +129,11 @@ jobs:
 
             ## Important Notes
 
-            - **MUST use Write tool to create docs/API.md, docs/ARCHITECTURE.md, docs/DATA_MODELS.md**
-            - **DO NOT create output.txt or log files**
+            - **MUST use Write tool to create NEW docs, Edit tool to update EXISTING docs**
+            - **DO NOT create output.txt, log files, or any temp files**
+            - **ONLY modify: docs/API.md, docs/ARCHITECTURE.md, docs/DATA_MODELS.md, README.md**
             - Analyze ALL related modules, not just changed files
-            - If no changes needed, create `/tmp/no_docs_needed.txt` and stop
+            - Always update/create docs - let git detect if actual changes were made
             - Make documentation self-contained and comprehensive
             - Use examples from the actual codebase
             - Follow Go documentation conventions (godoc style)
@@ -154,25 +157,22 @@ jobs:
       - name: Check if documentation was updated
         id: check_changes
         run: |
-          if [ -f /tmp/no_docs_needed.txt ]; then
-            echo "needs_pr=false" >> $GITHUB_OUTPUT
-            echo "✅ Documentation is up-to-date. No PR needed."
-            cat /tmp/no_docs_needed.txt
-          elif git status --short | grep -qE "(docs/|README.md)"; then
+          # Check if Claude modified any documentation files
+          if git status --short | grep -qE "(docs/.*\.md|README\.md)"; then
             echo "needs_pr=true" >> $GITHUB_OUTPUT
-            echo "📝 Documentation changes detected."
+            echo "📝 Documentation changes detected!"
             echo ""
             echo "Modified files:"
-            git status --short | grep -E "(docs/|README.md)"
+            git status --short | grep -E "(docs/.*\.md|README\.md)"
 
             # Capture modified files for PR body
-            MODIFIED_FILES=$(git status --short | grep -E "(docs/|README.md)" || echo "No files modified")
+            MODIFIED_FILES=$(git status --short | grep -E "(docs/.*\.md|README\.md)")
             echo "modified_files<<EOF" >> $GITHUB_OUTPUT
             echo "$MODIFIED_FILES" >> $GITHUB_OUTPUT
             echo "EOF" >> $GITHUB_OUTPUT
           else
             echo "needs_pr=false" >> $GITHUB_OUTPUT
-            echo "ℹ️ No documentation changes generated."
+            echo "ℹ️ No documentation changes were made (docs are already current)."
           fi
 
       - name: Create Documentation PR
