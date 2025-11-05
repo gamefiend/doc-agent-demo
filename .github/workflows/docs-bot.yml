@@ -81,9 +81,9 @@ jobs:
           show_full_output: true
           additional_permissions: |
             {
-              "read": ["/tmp/changed_files.txt", "docs/**/*.md", "README.md", "internal/**/*.go", "cmd/**/*.go"],
-              "write": ["docs/API.md", "docs/ARCHITECTURE.md", "docs/DATA_MODELS.md", "README.md"],
-              "edit": ["docs/API.md", "docs/ARCHITECTURE.md", "docs/DATA_MODELS.md", "README.md"]
+              "read": ["/tmp/changed_files.txt", "**/*.md", "**/*.go"],
+              "write": ["**/*.md"],
+              "edit": ["**/*.md"]
             }
           prompt: |
             # ⚠️ CRITICAL RULES - READ FIRST ⚠️
@@ -100,12 +100,6 @@ jobs:
             ✅ Use Write tool ONLY if Read tool fails (file doesn't exist)
             ✅ Read tool to check file existence FIRST before any Edit/Write
 
-            ## 📋 EXACT FILES YOU MAY MODIFY (no others):
-            1. docs/API.md
-            2. docs/ARCHITECTURE.md
-            3. docs/DATA_MODELS.md
-            4. README.md
-
             ---
 
             # Your Task
@@ -117,50 +111,35 @@ jobs:
 
             ### Step 1: Read Changed Files
             ```
-            Action: Use Read tool on /tmp/changed_files.txt
-            Then: Use Read tool on each file listed to understand changes
+            1. Use Bash tool: ls -la docs/
+            2. Use Glob tool: docs/**/*.md (to discover ALL markdown files)
+            3. Use Read tool on each .md file found to understand current docs structure
+            4. Use Read tool on each changed file from PR to understand what changed
             ```
 
-            ### Step 2: Read ALL Existing Docs (REQUIRED - DO NOT SKIP!)
-            You MUST execute Read tool on each file below (use EXACT paths as shown):
+            ### Step 2: Analyze Which Docs Need Updates
+            Based on the PR changes and existing docs you just discovered:
+            - Determine which documentation files are relevant to the PR changes
+            - You can update ANY .md file in docs/ folder, not just specific ones
+            - Common files to check: docs/API.md, docs/ARCHITECTURE.md, docs/DATA_MODELS.md, docs/*_handlers.md, docs/*_store.md, README.md
+            - Choose files dynamically based on what the PR actually changed
 
+            ### Step 3: Update ALL Relevant Documentation
+            For EACH markdown file that needs updates:
             ```
-            1. Read tool file_path: "docs/API.md"
-            2. Read tool file_path: "docs/ARCHITECTURE.md"
-            3. Read tool file_path: "docs/DATA_MODELS.md"
-            4. Read tool file_path: "README.md"
-            ```
-
-            **IMPORTANT:** After reading each file above, you will know it EXISTS.
-            DO NOT use Write tool on files that exist!
-
-            ### Step 3: Update Documentation (REQUIRED!)
-
-            For **docs/API.md** (you just read it - it EXISTS):
-            ```
-            Action: Use Edit tool (NOT Write!)
-            Update: Add/modify API documentation based on PR changes
+            1. Use Read tool on the file (if you haven't already)
+            2. Use Edit tool to update it (NOT Write - files exist!)
+            3. Make comprehensive updates based on PR changes
             ```
 
-            For **docs/ARCHITECTURE.md** (you just read it - it EXISTS):
-            ```
-            Action: Use Edit tool (NOT Write!)
-            Update: Add/modify architecture docs, update Mermaid diagrams if needed
-            ```
-
-            For **docs/DATA_MODELS.md** (you just read it - it EXISTS):
-            ```
-            Action: Use Edit tool (NOT Write!)
-            Update: Add/modify data models based on PR changes
-            ```
-
-            For **README.md** (you just read it - it EXISTS):
-            ```
-            Action: Use Edit tool (NOT Write!)
-            Update: Update relevant sections
-            ```
-
-            **RULE: Since you read these files in Step 2, you KNOW they exist = use Edit tool ONLY!**
+            **CRITICAL RULES:**
+            - Update ANY relevant .md files, not just a fixed list
+            - ALWAYS use Edit tool for existing files (NOT Write!)
+            - Be thorough - update all docs that relate to the PR changes
+            - If a handler changed, update its docs/handler file
+            - If a model changed, update DATA_MODELS.md
+            - If API changed, update API.md
+            - Always update README.md with high-level changes
 
             ### Step 4: Documentation Requirements
             Make documentation COMPREHENSIVE and DETAILED:
