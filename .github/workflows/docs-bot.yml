@@ -130,9 +130,9 @@ jobs:
             ### Step 2: Analyze Which Docs Need Updates
             Based on the PR changes and existing docs you just discovered:
             - Determine which documentation files are relevant to the PR changes
-            - You can update ANY .md file in docs/ folder, not just specific ones
-            - Common files to check: docs/API.md, docs/ARCHITECTURE.md, docs/DATA_MODELS.md, docs/*_handlers.md, docs/*_store.md, README.md
-            - Choose files dynamically based on what the PR actually changed
+            - You MUST update ANY .md file that relates to the changes (not just a fixed list!)
+            - Examples only (NOT requirements): docs/API.md, docs/ARCHITECTURE.md, docs/*_handlers.md, etc.
+            - Choose files dynamically by matching PR changes to doc topics
 
             ### Step 3: Update ALL Relevant Documentation
             For EACH markdown file that needs updates:
@@ -143,13 +143,10 @@ jobs:
             ```
 
             **CRITICAL RULES:**
-            - Update ANY relevant .md files, not just a fixed list
+            - Update ANY relevant .md files you discovered in Step 1 - not a fixed list!
             - ALWAYS use Edit tool for existing files (NOT Write!)
-            - Be thorough - update all docs that relate to the PR changes
-            - If a handler changed, update its docs/handler file
-            - If a model changed, update DATA_MODELS.md
-            - If API changed, update API.md
-            - Always update README.md with high-level changes
+            - Match changes to docs: handler changes → handler docs, model changes → model docs, etc.
+            - Always update README.md with high-level summary of changes
 
             ### Step 4: Documentation Requirements
             Make documentation COMPREHENSIVE and DETAILED:
