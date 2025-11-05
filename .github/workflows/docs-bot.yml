@@ -81,6 +81,7 @@ jobs:
           show_full_output: true
           allowed_non_write_users: "*"
           claude_args: "--permission-mode bypassPermissions"
+          allowed_tools: "Read,Write,Edit,Bash(git:*),Bash(ls:*),Bash(gh:*),Glob,Grep"
           additional_permissions: |
             {
               "read": ["/tmp/changed_files.txt", "**/*.md", "**/*.go"],
