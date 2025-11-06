@@ -37,8 +37,9 @@ func main() {
 	// API v1 group
 	v1 := r.Group("/api/v1")
 	{
-		// Health check endpoint
+		// Health check endpoints
 		v1.GET("/health", handlers.HealthCheck)
+		v1.GET("/health/details", handlers.HealthDetails) // NEW: Detailed system health
 
 		// User endpoints
 		v1.GET("/users", handlers.ListUsers)
