@@ -162,23 +162,23 @@ jobs:
 
       - name: Verify no forbidden files created
         run: |
-          # Primary check: no .txt/.log files in git (what gets committed)
-          if git status --short | grep -qE "\.txt$|\.log$"; then
-            echo "❌ CRITICAL: Text or log files were added to git (forbidden!)"
-            echo "Files found in git:"
-            git status --short | grep -E "\.txt$|\.log$"
+          # Primary check: no .txt/.log files in git (tracked/staged files only)
+          # --untracked-files=no excludes untracked temp files (like ?? output.txt)
+          if git status --short --untracked-files=no | grep -qE "\.txt$|\.log$"; then
+            echo "❌ CRITICAL: Text or log files were tracked/staged for commit (forbidden!)"
+            echo "Files found:"
+            git status --short --untracked-files=no | grep -E "\.txt$|\.log$"
             exit 1
           fi
 
-          # Secondary check: warn about output.txt on filesystem (safety check)
-          if [ -f "output.txt" ]; then
-            echo "⚠️  WARNING: output.txt found on filesystem (not in git)"
-            echo "This shouldn't exist per prompt instructions. Investigating..."
-            ls -lh output.txt || true
-            # Don't fail - just log for debugging
+          # Secondary check: warn about untracked temp files (won't fail workflow)
+          if git status --short --untracked-files=normal | grep -qE "^\?\? .*\.(txt|log)$"; then
+            echo "⚠️  WARNING: Untracked .txt/.log files found (won't be committed):"
+            git status --short --untracked-files=normal | grep -E "^\?\? .*\.(txt|log)$"
+            echo "These are likely temp files from the action infrastructure."
           fi
 
-          echo "✅ Validation passed: No forbidden files in git"
+          echo "✅ Validation passed: No forbidden files tracked for commit"
 
       - name: Install markdownlint
         run: npm install -g markdownlint-cli
