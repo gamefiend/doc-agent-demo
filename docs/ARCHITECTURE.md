@@ -1,6 +1,6 @@
 # Architecture Documentation
 
-> **Last Updated:** 2025-11-05
+> **Last Updated:** 2025-11-06
 >
 > This document describes the system architecture of the doc-agent-demo Go API.
 
@@ -35,7 +35,7 @@ doc-agent-demo/
 │       └── main.go          # Application entry point
 ├── internal/
 │   ├── handlers/            # HTTP request handlers
-│   │   ├── health.go        # Health check endpoint
+│   │   ├── health.go        # Health check endpoints (basic + detailed)
 │   │   ├── user.go          # User CRUD operations
 │   │   └── product.go       # Product CRUD operations
 │   └── models/              # Data models
@@ -58,7 +58,9 @@ The entry point of the application:
 
 HTTP request handlers that implement the API endpoints:
 
-- **health.go**: Health check endpoint
+- **health.go**: Health check endpoints (`HealthCheck`, `HealthDetails`)
+  - `HealthCheck`: Basic health status for load balancers
+  - `HealthDetails`: Detailed system information with runtime metrics
 - **user.go**: User management (CRUD operations)
 - **product.go**: Product management (CRUD operations)
 
@@ -94,10 +96,11 @@ sequenceDiagram
 
 ## Technology Stack
 
-- **Web Framework**: Gin (github.com/gin-gonic/gin)
+- **Web Framework**: Gin (github.com/gin-gonic/gin) v1.9.x
 - **Language**: Go 1.23+
 - **HTTP Server**: Built-in Go net/http
 - **Router**: Gin router with middleware support
+- **Runtime Monitoring**: Go runtime package for system metrics
 
 ## API Versioning
 
