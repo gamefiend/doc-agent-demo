@@ -219,12 +219,16 @@ jobs:
             echo "ℹ️ No documentation changes were made (docs are already current)."
           fi
 
-      - name: Clean up temp files before PR
+      - name: Clean up temp files and unwanted changes before PR
         if: steps.check_changes.outputs.needs_pr == 'true'
         run: |
           # Remove any temp files that shouldn't be committed
           rm -f output.txt *.log
-          echo "✅ Cleaned up temp files"
+
+          # Restore README.md to original state (bot should only modify docs/ folder)
+          git checkout HEAD -- README.md 2>/dev/null || echo "README.md not modified"
+
+          echo "✅ Cleaned up temp files and unwanted changes"
 
       - name: Create Documentation PR
         if: steps.check_changes.outputs.needs_pr == 'true'
