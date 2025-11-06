@@ -83,9 +83,9 @@ jobs:
           claude_args: "--permission-mode bypassPermissions"
           additional_permissions: |
             {
-              "read": ["/tmp/changed_files.txt", "**/*.md", "**/*.go"],
-              "write": ["**/*.md"],
-              "edit": ["**/*.md"]
+              "read": ["/tmp/changed_files.txt", "docs/**/*.md", "**/*.go"],
+              "write": ["docs/**/*.md"],
+              "edit": ["docs/**/*.md"]
             }
           prompt: |
             # ⚠️ CRITICAL RULES - READ FIRST ⚠️
@@ -98,10 +98,11 @@ jobs:
             ❌ **NEVER skip updating existing documentation files**
 
             ## ✅ ONLY THESE ACTIONS ARE ALLOWED:
-            ✅ Use Edit tool to UPDATE any existing .md files under docs/ folder and README.md
-            ✅ Use Write tool ONLY for .md files that don't exist yet
+            ✅ Use Edit tool to UPDATE any existing .md files under docs/ folder ONLY
+            ✅ Use Write tool ONLY for NEW .md files in docs/ folder that don't exist yet
             ✅ Use Glob/Bash tools to discover all .md files in docs/
             ✅ Read tool to check file content and existence FIRST before any Edit/Write
+            ❌ **DO NOT modify README.md** - Only docs/ folder files
 
             ---
 
@@ -156,7 +157,8 @@ jobs:
 
             ## Final Reminder:
             - ❌ DO NOT create output.txt or ANY temp files
-            - ✅ ONLY modify .md files in docs/ folder and README.md
+            - ❌ DO NOT modify README.md - Only docs/ folder
+            - ✅ ONLY modify .md files in docs/ folder
             - ✅ Use Edit for existing files, Write for new files only
             - Make changes even if they seem small - let git detect if there are real changes
 
@@ -199,16 +201,16 @@ jobs:
       - name: Check if documentation was updated
         id: check_changes
         run: |
-          # Check if Claude modified any documentation files
-          if git status --short | grep -qE "(docs/.*\.md|README\.md)"; then
+          # Check if Claude modified any documentation files (docs/ folder only)
+          if git status --short | grep -qE "docs/.*\.md"; then
             echo "needs_pr=true" >> $GITHUB_OUTPUT
             echo "📝 Documentation changes detected!"
             echo ""
             echo "Modified files:"
-            git status --short | grep -E "(docs/.*\.md|README\.md)"
+            git status --short | grep -E "docs/.*\.md"
 
             # Capture modified files for PR body
-            MODIFIED_FILES=$(git status --short | grep -E "(docs/.*\.md|README\.md)")
+            MODIFIED_FILES=$(git status --short | grep -E "docs/.*\.md")
             echo "modified_files<<EOF" >> $GITHUB_OUTPUT
             echo "$MODIFIED_FILES" >> $GITHUB_OUTPUT
             echo "EOF" >> $GITHUB_OUTPUT
@@ -216,6 +218,13 @@ jobs:
             echo "needs_pr=false" >> $GITHUB_OUTPUT
             echo "ℹ️ No documentation changes were made (docs are already current)."
           fi
+
+      - name: Clean up temp files before PR
+        if: steps.check_changes.outputs.needs_pr == 'true'
+        run: |
+          # Remove any temp files that shouldn't be committed
+          rm -f output.txt *.log
+          echo "✅ Cleaned up temp files"
 
       - name: Create Documentation PR
         if: steps.check_changes.outputs.needs_pr == 'true'
